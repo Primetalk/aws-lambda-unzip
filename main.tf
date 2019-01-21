@@ -53,3 +53,25 @@ data "aws_iam_policy_document" "unzip_lambda_role_policy" {
     resources = ["arn:aws:s3:::${var.target_bucket}*"]
   }
 }
+
+resource "aws_lambda_permission" "allow_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.unzip_lambda_lambda_function.arn}"
+  principal     = "s3.amazonaws.com"
+  source_arn    = "${data.aws_s3_bucket.target_bucket.arn}"
+}
+
+data "aws_s3_bucket" "target_bucket" {
+  bucket = "${var.target_bucket}"
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = "${var.target_bucket}"
+
+  lambda_function {
+    lambda_function_arn = "${aws_lambda_function.unzip_lambda_lambda_function.arn}"
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".zip"
+  }
+}
